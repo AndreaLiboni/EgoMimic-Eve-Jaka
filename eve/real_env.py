@@ -212,12 +212,26 @@ class RealEnvIK:
         if self.active_arms in ["right", "both"]:
             setup_follower_bot(self.follower_bot_right)
     
-    def reconstruct_joints(self, qpos):
+    def reconstruct_joints(self, qpos, joints=None):
         qpos = np.array(qpos)
         fk_qpos = self.fk.fk(qpos[:6]).numpy()
         pose = transformation_matrix_to_pose(fk_qpos.squeeze(0))[None, :]
-        qpos_reconstructed = self.ik.solve(pose[..., :3], pose[..., 3:], qpos)[0]
+        if joints is None:
+            qpos_reconstructed = self.ik.solve(pose[..., :3], pose[..., 3:], qpos)[0]
+        else:
+            qpos_reconstructed = self.ik.solve(pose[..., :3], pose[..., 3:], joints)[0]
         return array.array('d', qpos_reconstructed)
+    
+    def get_qpos_raw(self):
+        left_qpos_raw = self.recorder_left.qpos if self.recorder_left else [0] * 9
+        right_qpos_raw = self.recorder_right.qpos if self.recorder_right else [0] * 9
+        left_arm_qpos = left_qpos_raw[:6]
+        right_arm_qpos = right_qpos_raw[:6]
+        left_gripper_qpos = [FOLLOWER_GRIPPER_POSITION_NORMALIZE_FN(left_qpos_raw[7])]
+        right_gripper_qpos = [FOLLOWER_GRIPPER_POSITION_NORMALIZE_FN(right_qpos_raw[7])]
+        return np.concatenate(
+            [left_arm_qpos, left_gripper_qpos, right_arm_qpos, right_gripper_qpos]
+        )
 
     def get_qpos(self):
         left_qpos_raw = [0] * 9
@@ -302,7 +316,7 @@ class RealEnvIK:
 
     def get_observation(self, get_base_vel=False):
         obs = collections.OrderedDict()
-        obs['qpos'] = self.get_qpos()
+        obs['qpos'] = self.get_qpos_raw()
         obs['qvel'] = self.get_qvel()
         obs['effort'] = self.get_effort()
         obs['images'] = self.get_images()
@@ -327,6 +341,22 @@ class RealEnvIK:
             discount=None,
             observation=self.get_observation(),
         )
+
+    def reconstruct_actions(self, action, current_joints):
+        action_reconstructed = np.zeros(14)
+        if self.active_arms in ["left", "both"]:
+            left_action = action[:7]
+            left_joints = current_joints[:7]
+            left_action_reconstructed = self.reconstruct_joints(left_action, left_joints)
+            left_action_reconstructed = np.concatenate([np.array(left_action_reconstructed[:6]), np.array([left_action[-1]])])
+            action_reconstructed[:7] = left_action_reconstructed
+        if self.active_arms in ["right", "both"]:
+            right_action = action[-7:]
+            right_joints = current_joints[-7:]
+            right_action_reconstructed = self.reconstruct_joints(right_action, right_joints)
+            right_action_reconstructed = np.concatenate([np.array(right_action_reconstructed[:6]), np.array([right_action[-1]])])
+            action_reconstructed[-7:] = right_action_reconstructed
+        return action_reconstructed
 
     def step(self, action, base_action=None, get_base_vel=False, get_obs=True):
         if self.active_arms in ["left", "both"]:

@@ -194,17 +194,20 @@ def capture_one_episode(
     ts = env.reset(fake=True)
     timesteps = [ts]
     actions = []
+    actions_raw = []
     actual_dt_history = []
     time0 = time.time()
     DT = 1 / FPS
     for t in tqdm(range(max_timesteps)):
         t0 = time.time()
         action = get_action(leader_bot_left, leader_bot_right, active_arms)
+        action_reconstructed = env.reconstruct_actions(action, ts.observation['qpos'])
         t1 = time.time()
-        ts = env.step(action)
+        ts = env.step(action_reconstructed)
         t2 = time.time()
         timesteps.append(ts)
-        actions.append(action)
+        actions.append(action_reconstructed)
+        actions_raw.append(action)
         actual_dt_history.append([t0, t1, t2])
         time.sleep(max(0, DT - (time.time() - t0)))
     print(f'Avg fps: {max_timesteps / (time.time() - time0)}')
@@ -250,9 +253,11 @@ def capture_one_episode(
 
     data_dict = {
         '/observations/qpos': [],
+        # '/observations/qpos_raw': [],
         '/observations/qvel': [],
         '/observations/effort': [],
         '/action': [],
+        '/action_raw': [],
     }
     if IS_MOBILE:
         data_dict['/base_action'] = []
@@ -262,11 +267,14 @@ def capture_one_episode(
     # len(action): max_timesteps, len(time_steps): max_timesteps + 1
     while actions:
         action = actions.pop(0)
+        action_raw = actions_raw.pop(0)
         ts = timesteps.pop(0)
         data_dict['/observations/qpos'].append(ts.observation['qpos'])
+        # data_dict['/observations/qpos_raw'].append(ts.observation['qpos_raw'])
         data_dict['/observations/qvel'].append(ts.observation['qvel'])
         data_dict['/observations/effort'].append(ts.observation['effort'])
         data_dict['/action'].append(action)
+        data_dict['/action_raw'].append(action_raw)
         if IS_MOBILE:
             data_dict['/base_action'].append(ts.observation['base_vel'])
         for cam_name in camera_names:
@@ -323,9 +331,11 @@ def capture_one_episode(
                 _ = image.create_dataset(cam_name, (max_timesteps, 480, 640, 3), dtype='uint8',
                                          chunks=(1, 480, 640, 3), )
         _ = obs.create_dataset('qpos', (max_timesteps, 14))
+        _ = obs.create_dataset('qpos_raw', (max_timesteps, 14))
         _ = obs.create_dataset('qvel', (max_timesteps, 14))
         _ = obs.create_dataset('effort', (max_timesteps, 14))
         _ = root.create_dataset('action', (max_timesteps, 14))
+        _ = root.create_dataset('action_raw', (max_timesteps, 14))
         if IS_MOBILE:
             _ = root.create_dataset('base_action', (max_timesteps, 2))
         for name, array in data_dict.items():

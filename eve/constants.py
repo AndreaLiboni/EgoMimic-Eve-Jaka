@@ -375,5 +375,16 @@ TASK_CONFIGS = {
         'camera_names': ['cam_high', 'cam_right_wrist']
         
     },
+    'SCOOP_COFFEE_CAN':{
+        'dataset_dir': DATA_DIR + '/SCOOP_COFFEE',
+        'episode_len': 900,
+        'camera_names': ['cam_high', 'cam_left_wrist']
+        
+    },
+    'SCOOP_COFFEE_CAN_IK':{
+        'dataset_dir': DATA_DIR + '/SCOOP_COFFEE_IK',
+        'episode_len': 900,
+        'camera_names': ['cam_high', 'cam_left_wrist']
+    },
 }
 
