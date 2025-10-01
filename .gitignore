@@ -8,3 +8,8 @@ __pycache__/
 act/
 data/
 *.egg-info
+venv
+build
+install
+venv_jaka
+venv_new

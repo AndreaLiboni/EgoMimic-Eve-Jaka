@@ -2,6 +2,28 @@
 
 import os
 
+# JAKA params
+JAKA_MAX_MOVEMENT_MM = 1.5
+JAKA_MAX_ROTATION_RAD = 0.006
+JAKA_MAX_GRIPPER_MOVEMENT = 0.04
+JAKA_SPEED = 500 # mm/s
+JAKA_URDF_PATH = "/home/andrea/jaka_ros2/src/jaka_description/jaka_zu7.urdf"
+JAKA_IO = 0  #0: control cabinet panel IO | 1: tool IO
+JAKA_GRIPPER_IO = 0   #extension IO
+JAKA_START_ARM_POSE = [
+    0.0, 1.57, -1.57, 0.0, -1.57, 0.0,
+]
+# gripper
+JAKA_GRIPPER_CLOSE_THRESH = 0.8 # gripper position to consider as "closed"
+JAKA_GRIPPER_POSITION_OPEN = 0.0579
+JAKA_GRIPPER_POSITION_CLOSE = 0.0440
+JAKA_GRIPPER_POSITION_NORMALIZE_FN = lambda x: (x - JAKA_GRIPPER_POSITION_CLOSE) / (JAKA_GRIPPER_POSITION_OPEN - JAKA_GRIPPER_POSITION_CLOSE)
+JAKA_GRIPPER_VELOCITY_NORMALIZE_FN = lambda x: x / (JAKA_GRIPPER_POSITION_OPEN - JAKA_GRIPPER_POSITION_CLOSE)
+JAKA_GRIPPER_JOINT_OPEN = 1.5
+JAKA_GRIPPER_JOINT_CLOSE = 0.5
+JAKA_GRIPPER_JOINT_UNNORMALIZE_FN = lambda x: x * (JAKA_GRIPPER_JOINT_OPEN - JAKA_GRIPPER_JOINT_CLOSE) + JAKA_GRIPPER_JOINT_CLOSE
+JAKA_GRIPPER_JOINT_NORMALIZE_FN = lambda x: (x - JAKA_GRIPPER_JOINT_CLOSE) / (JAKA_GRIPPER_JOINT_OPEN - JAKA_GRIPPER_JOINT_CLOSE)
+
 ### Task parameters
 
 # Set to 'true' for Mobile ALOHA, 'false' for Stationary ALOHA
@@ -11,7 +33,8 @@ IS_MOBILE = False
 COLOR_IMAGE_TOPIC_NAME = '{}/camera/color/image_rect_raw'  # for RealSense cameras
 
 # DATA_DIR = os.path.expanduser('~/aloha_data')
-DATA_DIR = "/home/rl2-eve/interbotix_ws/src/EgoMimic-Eve/scripts/data"
+# DATA_DIR = "/home/rl2-eve/interbotix_ws/src/EgoMimic-Eve/scripts/data"
+DATA_DIR = "/home/andrea/test"
 # DATA_DIR = "/media/rl2-bonjour/data/EgoplayData"
 
 ### ALOHA Fixed Constants
@@ -93,6 +116,12 @@ TASK_CONFIGS = {
     #     'episode_len': 1500,
     #     'camera_names': ['cam_high', 'cam_left_wrist', 'cam_right_wrist']
     # },
+    'jaka_test':{
+        'dataset_dir': DATA_DIR + '/jaka_test',
+        'episode_len': 0,
+        # 'camera_names': ['cam_wrist'],
+        'camera_names': ['cam_high', 'cam_wrist']
+    },
 
     'aloha_mobile_hello_aloha':{
         'dataset_dir': DATA_DIR + '/aloha_mobile_hello_aloha',

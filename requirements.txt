@@ -6,7 +6,7 @@ IPython
 matplotlib
 modern_robotics
 mujoco
-numpy<2.0.0
+numpy==1.26.4
 opencv-python
 packaging
 pexpect
@@ -18,3 +18,5 @@ torchvision
 tqdm
 transforms3d
 wandb
+pytorch-kinematics
+projectaria_client_sdk==1.1.0
