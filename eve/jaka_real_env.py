@@ -19,14 +19,14 @@ from eve.constants import (
     IS_MOBILE,
     LEADER_GRIPPER_JOINT_NORMALIZE_FN,
     START_ARM_POSE,
-    JAKA_URDF_PATH,
     JAKA_GRIPPER_POSITION_NORMALIZE_FN,
     JAKA_GRIPPER_VELOCITY_NORMALIZE_FN,
     JAKA_GRIPPER_JOINT_UNNORMALIZE_FN,
     JAKA_GRIPPER_JOINT_NORMALIZE_FN,
     JAKA_GRIPPER_JOINT_CLOSE,
     JAKA_GRIPPER_JOINT_OPEN,
-    JAKA_SPEED
+    JAKA_SPEED,
+    JAKA_START_ARM_POSE,
 )
 
 from eve.jaka_utils import (
@@ -89,12 +89,10 @@ def set_gripper_pose(
         # self.follower_bot_left.gripper.core.pub_single.publish(self.gripper_command)
 
 def _reset_joints(robot: RC):
-    reset_position = START_ARM_POSE[:6]
-    move_arms(robot, reset_position, moving_time=2.0)
+    move_arms(robot, JAKA_START_ARM_POSE[:6])
 
 def _reset_gripper(robot: RC):
-    move_gripper(robot, JAKA_GRIPPER_JOINT_OPEN, moving_time=1.0)
-    move_gripper(robot, JAKA_GRIPPER_JOINT_CLOSE, moving_time=1.0)
+    move_gripper(robot, JAKA_GRIPPER_JOINT_OPEN)2
 
 
 # class JakaIK:
@@ -592,9 +590,11 @@ class RealEnvJaka:
             observation=self.get_observation(),
         )
 
-    def step(self, action, base_action=None, get_base_vel=False, get_obs=True):
-        # self.robot.joint_move(action[:6], 0, False, JAKA_SPEED)
-        # self.set_gripper_pose(action[-1])
+    def step(self, action, base_action=None, get_base_vel=False, get_obs=True, move_real=False):
+        if move_real:
+            # self.robot.servo_j(action[:6], 0, 10)
+            self.robot.joint_move(action[:6], 0, False, JAKA_SPEED)
+            move_gripper(self.robot, action[6])
         # if base_action is not None:
         #     base_action_linear, base_action_angular = base_action
         #     self.base.base.command_velocity_xyaw(x=base_action_linear, yaw=base_action_angular)

@@ -2,17 +2,12 @@
 import argparse
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String
 from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
+from cv_bridge import CvBridge
 import aria.sdk as aria
 import numpy as np
 from projectaria_tools.core.sensor_data import ImageDataRecord
 from projectaria_tools.core import calibration
-import signal
-import cv2
-
-from rclpy.executors import MultiThreadedExecutor
 
 import sys
 
@@ -25,7 +20,6 @@ class StreamingClientObserver(Node):
         self.rgb_calib = sensors_calib.get_camera_calib("camera-rgb")
 
     def on_image_received(self, image: np.array, record: ImageDataRecord):
-        print(f"Received image from camera")
         rgb_image = self.undistort(image, self.rgb_calib)
         self.pub.publish(self.bridge.cv2_to_imgmsg(rgb_image, "rgb8"))
 

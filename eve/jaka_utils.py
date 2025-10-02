@@ -16,7 +16,8 @@ from eve.constants import (
     JAKA_GRIPPER_IO,
     JAKA_IO,
     JAKA_GRIPPER_CLOSE_THRESH,
-    JAKA_START_ARM_POSE
+    JAKA_START_ARM_POSE,
+    JAKA_SPEED,
 )
 from cv_bridge import CvBridge
 import numpy as np
@@ -120,18 +121,6 @@ class Recorder(Node):
             self.joint_cb,
             10,
         )
-        # node.create_subscription(
-        #     JointGroupCommand,
-        #     f'/follower_{side}/commands/joint_group',
-        #     self.follower_arm_commands_cb,
-        #     10,
-        # )
-        # node.create_subscription(
-        #     JointSingleCommand,
-        #     f'/follower_{side}/commands/joint_single',
-        #     self.follower_gripper_commands_cb,
-        #     10,
-        # )
         if self.is_debug:
             self.joint_timestamps = deque(maxlen=50)
             self.arm_command_timestamps = deque(maxlen=50)
@@ -187,13 +176,6 @@ def move_arms(
 ) -> None:
     robot.joint_move(target_pose, 0, block, JAKA_SPEED)
     return None
-    num_steps = int(moving_time / DT)
-    curr_pose = get_arm_joint_positions(robot)
-    traj = np.linspace(curr_pose, target_pose, num_steps)
-    for t in range(num_steps):
-        # joint_move(joint_pos, move_mode, is_block, speed)
-        robot.joint_move(traj[t], 0, False, JAKA_SPEED)
-        time.sleep(DT)
 
 
 def sleep_arms(
