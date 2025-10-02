@@ -7,38 +7,97 @@ import time
 from typing import Sequence
 
 from eve.constants import (
-    COLOR_IMAGE_TOPIC_NAME,
     JAKA_MAX_MOVEMENT_MM,
     JAKA_MAX_ROTATION_RAD,
     JAKA_MAX_GRIPPER_MOVEMENT,
-    DT,
-    IS_MOBILE,
     JAKA_GRIPPER_IO,
     JAKA_IO,
-    JAKA_GRIPPER_CLOSE_THRESH,
     JAKA_START_ARM_POSE,
     JAKA_SPEED,
 )
 from cv_bridge import CvBridge
 import numpy as np
 from rclpy.node import Node
-from std_msgs.msg import Float64MultiArray
-from sensor_msgs.msg import Image, JointState
+from sensor_msgs.msg import Image
 from sensor_msgs.msg import Joy
+
+
+class JAKA:
+
+    def __init__(self, ip_address: str):
+        self.robot = RC(ip_address)
+        self.robot.login()
+
+        self.speed =                JAKA_SPEED
+        self.io_id =                JAKA_IO
+        self.gripper_id =           JAKA_GRIPPER_IO
+        self.start_pose_joints =    JAKA_START_ARM_POSE[:6]
+        self.start_pose_gripper =   JAKA_START_ARM_POSE[6]
+        self.frame_id =             None
+        self.tool_id =              None
+
+    def setup_robot(self):
+        self.robot.power_on()
+        self.robot.enable_robot()
+        self.robot.servo_move_use_none_filter()
+        self.robot.servo_move_enable(False)
+        
+        if self.frame_id is not None:
+            self.robot.set_user_frame_id(self.frame_id)
+        if self.tool_id is not None:
+            self.robot.set_tool_id(self.tool_id)
+    
+    def servo_mode(self):
+        self.robot.servo_move_use_joint_LPF(0.5) 
+        self.robot.servo_move_enable(True)
+    
+    def move_to_start(self, block: bool = True):
+        self.move_gripper(self.start_pose_gripper)
+        self.move_joints(self.start_pose_joints, block=block)
+    
+    def get_joints(self) -> list:
+        ret, pos = self.robot.get_joint_position()
+        if ret == 0:
+            return pos 
+        raise Exception(f'JAKA_error ({ret})')
+    
+    def move_joints(self, target_pose: Sequence[float], block: bool = False):
+        ret = self.robot.joint_move(target_pose, 0, block, self.speed)[0]
+        if ret != 0:
+            raise Exception(f'JAKA_error ({ret})')
+    
+    def get_gripper(self) -> float:
+        ret, pos = self.robot.get_analog_output(self.io_id, self.gripper_id)
+        if ret == 0:
+            return pos / 100
+        raise Exception(f'JAKA_error ({ret})')
+
+    def move_gripper(self, target_pose: float, incremental: bool = False):
+        if incremental:
+            target_pose = self.get_gripper() + target_pose
+        target_pose *= 100
+        if not (0 <= target_pose <= 100):
+            target_pose = np.clip(target_pose, 0, 100)
+        ret = self.robot.set_analog_output(self.io_id, self.gripper_id, target_pose)[0]
+        if ret != 0:
+            raise Exception(f'JAKA_error {ret}')
+    
+    def move_servo_pos(self, target_pose: Sequence[float]):
+        ret = self.robot.servo_p(target_pose, 1, 1)[0]
+        if ret != 0:
+            raise Exception(f'JAKA_error ({ret})')
+
 
 
 class ImageRecorder(Node):
     def __init__(
         self,
-        is_mobile: bool = IS_MOBILE,
         is_debug: bool = False,
     ):
         super().__init__('image_recorder')
         self.is_debug = is_debug
         self.bridge = CvBridge()
 
-        if is_mobile:
-            pass
         self.camera_names = ['cam_high', 'cam_wrist']
         
 
@@ -54,7 +113,7 @@ class ImageRecorder(Node):
                 topic = "/cam_wrist/camera/color/image_raw"
             else:
                 raise NotImplementedError
-            # topic = COLOR_IMAGE_TOPIC_NAME.format(cam_name)
+            
             self.create_subscription(Image, topic, callback_func, 20)
             if self.is_debug:
                 setattr(self, f'{cam_name}_timestamps', deque(maxlen=50))
@@ -99,181 +158,9 @@ class ImageRecorder(Node):
         print()
 
 
-class Recorder(Node):
-    def __init__(
-        self,
-        is_debug: bool = False,
-    ):
-        super().__init__('robot_recorder')
-        print("Recorder node started")
-        self.secs = None
-        self.nsecs = None
-        self.qpos = None
-        self.qvel = None
-        self.effort = None
-        self.arm_command = None
-        self.gripper_command = None
-        self.is_debug = is_debug
-
-        self.create_subscription(
-            JointState,
-            f'/jaka_driver/joint_position',
-            self.joint_cb,
-            10,
-        )
-        if self.is_debug:
-            self.joint_timestamps = deque(maxlen=50)
-            self.arm_command_timestamps = deque(maxlen=50)
-            self.gripper_command_timestamps = deque(maxlen=50)
-        time.sleep(0.1)
-
-    def joint_cb(self, data: JointState):
-        print(data)
-        self.qpos = data.position
-        self.qvel = data.velocity
-        self.effort = data.effort
-        self.data = data
-        if self.is_debug:
-            self.joint_timestamps.append(time.time())
-
-    # def follower_arm_commands_cb(self, data):
-    #     self.arm_command = data.cmd
-    #     if self.is_debug:
-    #         self.arm_command_timestamps.append(time.time())
-
-    # def follower_gripper_commands_cb(self, data):
-    #     self.gripper_command = data.cmd
-    #     if self.is_debug:
-    #         self.gripper_command_timestamps.append(time.time())
-
-    def print_diagnostics(self):
-        def dt_helper(ts):
-            ts = np.array(ts)
-            diff = ts[1:] - ts[:-1]
-            return np.mean(diff)
-
-        joint_freq = 1 / dt_helper(self.joint_timestamps)
-        arm_command_freq = 1 / dt_helper(self.arm_command_timestamps)
-        gripper_command_freq = 1 / dt_helper(self.gripper_command_timestamps)
-
-        print(f'{joint_freq=:.2f}\n{arm_command_freq=:.2f}\n{gripper_command_freq=:.2f}\n')
-
-
-def get_arm_joint_positions(robot: RC):
-    ret = robot.get_joint_position()
-    if ret[0] == 0:
-        return ret[1]
-    else:  
-        print("some things happend,the errcode is: ",ret[0])
-        return None
-
-
-def move_arms(
-    robot: RC,
-    target_pose: Sequence[float],
-    block: bool = False,
-    moving_time: float = 1.0,
-) -> None:
-    robot.joint_move(target_pose, 0, block, JAKA_SPEED)
-    return None
-
-
-def sleep_arms(
-    bot_list: Sequence[RC],
-    moving_time: float = 5.0,
-    home_first: bool = True,
-) -> None:
-    """Command given list of arms to their sleep poses, optionally to their home poses first.
-
-    :param bot_list: List of bots to command to their sleep poses
-    :param moving_time: Duration in seconds the movements should take, defaults to 5.0
-    :param home_first: True to command the arms to their home poses first, defaults to True
-    """
-    if home_first:
-        move_arms(
-            bot_list,
-            [[0.0, -0.96, 1.16, 0.0, -0.3, 0.0]] * len(bot_list),
-            moving_time=moving_time
-        )
-    move_arms(
-        bot_list,
-        [bot.arm.group_info.joint_sleep_positions for bot in bot_list],
-        moving_time=moving_time,
-    )
-
-def get_gripper_position(robot: RC):
-    # return 1
-    return robot.get_analog_output(JAKA_IO, JAKA_GRIPPER_IO)[1] / 100
-
-def move_gripper(
-    robot: RC,
-    target_pose: float,
-):
-    target_pose *= 100  
-    if not (0 <= target_pose <= 100):
-        # print(f'Gripper target {target_pose} out of range [0, 100]')
-        target_pose = np.clip(target_pose, 0, 100)
-    # print(f'Setting gripper to {target_pose=} on IO {JAKA_IO}, {JAKA_GRIPPER_IO}')
-    robot.set_analog_output(JAKA_IO, JAKA_GRIPPER_IO, target_pose)
-
-
-def setup_robot(robot: RC):
-    print("Robot setup")
-    robot.power_on()
-    robot.enable_robot()
-    # robot.servo_move_enable(False)
-    # robot.servo_move_use_none_filter()
-    move_gripper(robot, 0)  # open gripper
-
-def calibrate_linear_vel(base_action, c=None):
-    if c is None:
-        c = 0.
-    v = base_action[..., 0]
-    w = base_action[..., 1]
-    base_action = base_action.copy()
-    base_action[..., 0] = v - c * w
-    return base_action
-
-
-def smooth_base_action(base_action):
-    return np.stack(
-        [
-            np.convolve(
-                base_action[:, i],
-                np.ones(5)/5, mode='same') for i in range(base_action.shape[1])
-        ],
-        axis=-1
-    ).astype(np.float32)
-
-
-def postprocess_base_action(base_action):
-    linear_vel, angular_vel = base_action
-    angular_vel *= 0.9
-    return np.array([linear_vel, angular_vel])
-
-def opening_ceremony(robot: RC):
-    """Move the active robot to a pose where it is easy to start demonstration."""
-    print("Moving to starting pose...")
-    move_arms(robot, JAKA_START_ARM_POSE[:6], block=True)
-    print("End moving.")
-
-def press_to_start(robot: RC):
-    # press gripper to start teleop
-    print('Close the grippers to start')
-    pressed = False
-    while True and not pressed:
-        pos = get_gripper_position(robot)
-        print(pos)
-        pressed = pos > JAKA_GRIPPER_CLOSE_THRESH
-        # move_gripper(robot, 0.2)
-        time.sleep(5)
-
-    print('Started!')
-
-
 class ControllerSubscriber(Node):
 
-    def __init__(self, robot: RC):
+    def __init__(self, robot: JAKA):
         super().__init__('controller_subscriber')
         self.robot = robot
         self.subscription = self.create_subscription(
@@ -283,14 +170,10 @@ class ControllerSubscriber(Node):
             10
         )
         self.subscription
-        self.robot.servo_move_use_joint_LPF(0.5) 
-        self.robot.servo_move_enable(True)
+        self.robot.servo_mode()
         self.record = True
-        self.pub = self.create_publisher(Float64MultiArray, 'test/joy', 1)
-
 
     def joy_callback(self, msg: Joy):
-
         new_pos = [
             msg.axes[6] * JAKA_MAX_MOVEMENT_MM,
             msg.axes[0] * JAKA_MAX_MOVEMENT_MM *-1,
@@ -308,15 +191,12 @@ class ControllerSubscriber(Node):
         #     0
         # ]
         if msg.buttons[0] == 1:  # A button to close gripper
-            pos = get_gripper_position(self.robot) + JAKA_MAX_GRIPPER_MOVEMENT
-            move_gripper(self.robot, pos)
+            self.robot.move_gripper(JAKA_MAX_GRIPPER_MOVEMENT, incremental=True)
         elif msg.buttons[1] == 1:  # B button to open gripper
-            pos = get_gripper_position(self.robot) - JAKA_MAX_GRIPPER_MOVEMENT
-            move_gripper(self.robot, pos)
-        
+            self.robot.move_gripper(-JAKA_MAX_GRIPPER_MOVEMENT, incremental=True)
+
         if msg.buttons[3] == 1:  # Y button to stop recording
             self.record = False
             print('Stopped recording')
         # (pos, INCREMENT, STEP_NUM)
-        self.pub.publish(Float64MultiArray(data=new_pos))
-        self.robot.servo_p(new_pos, 1, 1)
+        self.robot.move_servo_pos(new_pos)

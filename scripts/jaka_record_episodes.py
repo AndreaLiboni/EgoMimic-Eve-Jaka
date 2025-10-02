@@ -1,47 +1,26 @@
 #!/usr/bin/env python3
-import sys
 import threading
-sys.path.append('/home/andrea/jaka_sdk_2.2.7')
-from jkrc import RC
-
 import argparse
 import os
 import time
-
-
-from eve.constants import (
-    DT,
-    FPS,
-    IS_MOBILE,
-    TASK_CONFIGS,
-    JAKA_GRIPPER_JOINT_CLOSE,
-)
-from eve.jaka_real_env import (
-    get_action,
-    RealEnvJaka
-)
-from eve.jaka_utils import (
-    opening_ceremony,
-    press_to_start,
-    setup_robot,
-    move_gripper,
-    Recorder,
-    ImageRecorder,
-    ControllerSubscriber
-)
 import cv2
 import h5py
-
-import IPython
 import numpy as np
 import rclpy
 from tqdm import tqdm
 
+from eve.jaka_real_env import RealEnvJaka
+from eve.constants import (
+    FPS,
+    TASK_CONFIGS,
+)
+from eve.jaka_utils import (
+    JAKA,
+    ControllerSubscriber
+)
 
-e = IPython.embed
 
 def capture_one_episode(
-    dt,
     max_timesteps,
     camera_names,
     dataset_dir,
@@ -60,47 +39,39 @@ def capture_one_episode(
         print(f'Dataset already exists at \n{dataset_path}\nHint: set overwrite to True.')
         exit()
 
-    # Move robots to starting pose and wait for gripper closure
-    # opening_ceremony(env.robot)
-    # press_to_start(env.robot)
-
     # Data collection
-    ts = env.reset(fake=True)
+    ts = env.reset()
     timesteps = [ts]
     actions = []
     actual_dt_history = []
     time0 = time.time()
     DT = 1 / FPS
-    if max_timesteps == 0:
-        while controller.record:
-            t0 = time.time()
-            action = get_action(env.robot)
-            t1 = time.time()
-            ts = env.step(action)
-            t2 = time.time()
-            timesteps.append(ts)
-            actions.append(action)
-            actual_dt_history.append([t0, t1, t2])
-            time.sleep(max(0, DT - (time.time() - t0)))
-            max_timesteps += 1
-    else:
-        for t in tqdm(range(max_timesteps)):
-            t0 = time.time()
-            action = get_action(env.robot)
-            t1 = time.time()
-            ts = env.step(action)
-            t2 = time.time()
-            timesteps.append(ts)
-            actions.append(action)
-            actual_dt_history.append([t0, t1, t2])
-            time.sleep(max(0, DT - (time.time() - t0)))
+    # while controller.record:
+    #     t0 = time.time()
+    #     action = get_action(env.robot)
+    #     t1 = time.time()
+    #     ts = env.step(action)
+    #     t2 = time.time()
+    #     timesteps.append(ts)
+    #     actions.append(action)
+    #     actual_dt_history.append([t0, t1, t2])
+    #     time.sleep(max(0, DT - (time.time() - t0)))
+    #     max_timesteps += 1
+    for t in tqdm(range(max_timesteps)):
+        if not controller.record:
+            max_timesteps = t
+            break
+        t0 = time.time()
+        action = env.get_action()
+        t1 = time.time()
+        ts = env.step()
+        t2 = time.time()
+        timesteps.append(ts)
+        actions.append(action)
+        actual_dt_history.append([t0, t1, t2])
+        time.sleep(max(0, DT - (time.time() - t0)))
+    
     print(f'Avg fps: {max_timesteps / (time.time() - time0)}')
-
-
-    move_gripper(
-        env.robot,
-        JAKA_GRIPPER_JOINT_CLOSE
-    )
 
     freq_mean = print_dt_diagnosis(actual_dt_history)
     if freq_mean < 30:
@@ -128,8 +99,7 @@ def capture_one_episode(
         '/observations/effort': [],
         '/action': [],
     }
-    if IS_MOBILE:
-        data_dict['/base_action'] = []
+
     for cam_name in camera_names:
         data_dict[f'/observations/images/{cam_name}'] = []
 
@@ -141,10 +111,8 @@ def capture_one_episode(
         data_dict['/observations/qvel'].append(ts.observation['qvel'])
         data_dict['/observations/effort'].append(ts.observation['effort'])
         data_dict['/action'].append(action)
-        if IS_MOBILE:
-            data_dict['/base_action'].append(ts.observation['base_vel'])
+        
         for cam_name in camera_names:
-            # print(ts.observation['images'][cam_name])
             data_dict[f'/observations/images/{cam_name}'].append(
                 ts.observation['images'][cam_name]
             )
@@ -162,7 +130,7 @@ def capture_one_episode(
             compressed_len.append([])
             for image in image_list:
                 # 0.02 sec # cv2.imdecode(encoded_image, 1)
-                result, encoded_image = cv2.imencode('.jpg', image, encode_param)
+                _, encoded_image = cv2.imencode('.jpg', image, encode_param)
                 compressed_list.append(encoded_image)
                 compressed_len[-1].append(len(encoded_image))
             data_dict[f'/observations/images/{cam_name}'] = compressed_list
@@ -198,11 +166,9 @@ def capture_one_episode(
                 image.create_dataset(cam_name, (max_timesteps, 480, 640, 3), dtype='uint8',
                                          chunks=(1, 480, 640, 3), )
         obs.create_dataset('qpos', (max_timesteps, 7))
-        obs.create_dataset('qvel', (max_timesteps, 7))
-        obs.create_dataset('effort', (max_timesteps, 7))
+        # obs.create_dataset('qvel', (max_timesteps, 7))
+        # obs.create_dataset('effort', (max_timesteps, 7))
         root.create_dataset('action', (max_timesteps, 7))
-        if IS_MOBILE:
-            root.create_dataset('base_action', (max_timesteps, 2))
 
         for name, array in data_dict.items():
             print(name, np.array(array).shape)
@@ -234,20 +200,13 @@ def main(args: dict):
     dataset_name = f'episode_{episode_idx}'
     print(dataset_name + '\n')
 
-    robot = RC(args['ip'])
-    robot.login()
-
-    setup_robot(robot)
-    robot.set_user_frame_id(0)
-    robot.set_tool_id(9)
+    robot = JAKA(args['ip'])
+    robot.frame_id = 0
+    robot.tool_id = 9
+    robot.setup_robot()
 
     rclpy.init()
-    env = RealEnvJaka(
-        robot=robot,
-        setup_robots=False,
-        setup_base=IS_MOBILE,
-        # torque_base=torque_base,
-    )
+    env = RealEnvJaka(robot)
 
     executor = rclpy.executors.MultiThreadedExecutor()
     controller = ControllerSubscriber(robot)
@@ -258,7 +217,6 @@ def main(args: dict):
     print("Robot control ready")
     while True:
         is_healthy = capture_one_episode(
-            DT,
             max_timesteps,
             camera_names,
             dataset_dir,
@@ -299,16 +257,6 @@ def print_dt_diagnosis(actual_dt_history):
     return freq_mean
 
 
-def debug():
-    print(f'====== Debug mode ======')
-    recorder = Recorder(is_debug=True)
-    image_recorder = ImageRecorder(is_debug=True)
-    while True:
-        time.sleep(1)
-        recorder.print_diagnostics()
-        image_recorder.print_diagnostics()
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -333,13 +281,4 @@ if __name__ == '__main__':
         help='JAKA Robot IP address.',
         required=True,
     )
-    # parser.add_argument(
-    #     '-b', '--enable_base_torque',
-    #     action='store_true',
-    #     help=(
-    #         'If set, mobile base will be torqued on during episode recording, allowing the use of'
-    #         ' a joystick controller or some other manual method.'
-    #     ),
-    # )
     main(vars(parser.parse_args()))
-    # debug()
