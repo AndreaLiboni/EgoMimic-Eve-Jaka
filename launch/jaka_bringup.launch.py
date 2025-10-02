@@ -2,16 +2,15 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     GroupAction,
-    IncludeLaunchDescription,
     OpaqueFunction,
 )
 from launch.conditions import (
   IfCondition,
 )
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     LaunchConfiguration,
     PathJoinSubstitution,
+    PythonExpression,
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -26,37 +25,6 @@ env["PYTHONPATH"] = f"{venv_path}/lib/python3.10/site-packages:" + env.get("PYTH
 
 
 def launch_setup(context, *args, **kwargs):
-
-    # jaka_launch_include = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource([
-    #         PathJoinSubstitution([
-    #             FindPackageShare('jaka_driver'),
-    #             'launch',
-    #             'robot_start.launch.py'
-    #         ])
-    #     ]),
-    #     launch_arguments={
-    #         'ip': '192.168.0.75',
-    #     }.items(),
-    # )
-
-    # jaka_transform_broadcaster_node = Node(
-    #     package='tf2_ros',
-    #     executable='static_transform_publisher',
-    #     name='jaka_transform_broadcaster_node',
-    #     arguments=[
-    #         '-0.5',
-    #         '0.25',
-    #         '0.0',
-    #         '0.0',
-    #         '0.0',
-    #         '0.0',
-    #         '1.0',
-    #         '/world',
-    #         '/jaka_driver/joint_position',
-    #     ],
-    #     output={'both': 'log'},
-    # )
 
     rs_actions = []
     camera_names = [
@@ -99,25 +67,22 @@ def launch_setup(context, *args, **kwargs):
             '--device_ip', LaunchConfiguration('aria_ip'),
         ],
         emulate_tty=True,
+        condition=IfCondition(PythonExpression(['not ', LaunchConfiguration('usb_cam')]))
     )
-    # https://github.com/ros2/teleop_twist_joy
-    # joystick_teleop_node = Node(
-    #     package='teleop_twist_joy',
-    #     executable='teleop_node',
-    #     name='base_joystick_teleop',
-    #     namespace='mobile_base',
-    #     parameters=[
-    #         ParameterFile(
-    #             PathJoinSubstitution([
-    #                 FindPackageShare('eve'),
-    #                 'config',
-    #                 'base_joystick_teleop.yaml'
-    #             ]),
-    #             allow_substs=True,
-    #         ),
-    #     ],
-    #     condition=IfCondition(LaunchConfiguration('use_joystick_teleop')),
-    # )
+
+    usb_cam_node = Node(
+        package='usb_cam',
+        executable='usb_cam_node_exe',
+        name='usb_cam_node_exe',
+        namespace='cam_high',
+        parameters=[{
+            'video_device': '/dev/video6',
+            'image_width': 640,
+            'image_height': 480,
+            'pixel_format': 'yuyv2rgb',
+        }],
+        condition=IfCondition(LaunchConfiguration('usb_cam'))
+    )
 
     joy_node = Node(
         package='joy',
@@ -132,48 +97,16 @@ def launch_setup(context, *args, **kwargs):
         condition=IfCondition(LaunchConfiguration('use_joystick_teleop')),
     )
 
-    # rviz2_node = Node(
-    #     package='rviz2',
-    #     executable='rviz2',
-    #     name='rviz2',
-    #     output='screen',
-    #     arguments=[
-    #         '-d', LaunchConfiguration('aloha_rvizconfig')
-    #     ],
-    #     condition=IfCondition(LaunchConfiguration('use_rviz')),
-    # )
-
     return [
-        # jaka_launch_include,
-        # jaka_transform_broadcaster_node,
         realsense_ros_launch_includes_group_action,
         stream_aria_ros_node,
-        # joystick_teleop_node,
+        usb_cam_node,
         joy_node,
-        # rviz2_node,
     ]
 
 
 def generate_launch_description():
     declared_arguments = []
-    # declared_arguments.append(
-    #     DeclareLaunchArgument(
-    #         'jaka',
-    #         default_value='jaka_zu',
-    #         description='model of the jaka robot.'
-    #     )
-    # )
-    # declared_arguments.append(
-    #     DeclareLaunchArgument(
-    #         'jaka_args',
-    #         default_value=PathJoinSubstitution([
-    #             FindPackageShare('eve'),
-    #             'config',
-    #             'jaka.yaml',
-    #         ]),
-    #         description="the file path to the 'mode config' YAML file for the jaka arm.",
-    #     )
-    # )
     declared_arguments.append(
         DeclareLaunchArgument(
             'use_cameras',
@@ -185,28 +118,19 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             'use_joystick_teleop',
-            default_value='false',
-            choices=('true', 'false'),
-            description='if `true`, launches a joystick teleop node for the base',
+            default_value='False',
+            choices=('True', 'False'),
+            description='if `True`, launches a joystick teleop node for the base',
         )
     )
-    # declared_arguments.append(
-    #     DeclareLaunchArgument(
-    #         'use_rviz',
-    #         default_value='false',
-    #         choices=('true', 'false'),
-    #     )
-    # )
-    # declared_arguments.append(
-    #     DeclareLaunchArgument(
-    #         'jaka_rvizconfig',
-    #         default_value=PathJoinSubstitution([
-    #             FindPackageShare('eve'),
-    #             'rviz',
-    #             'jaka.rviz',
-    #         ]),
-    #     )
-    # )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'usb_cam',
+            default_value='False',
+            choices=('True', 'False'),
+            description='if `True`, launches the USB camera node instead of the Aria camera node',
+        )
+    )
     declared_arguments.append(
         DeclareLaunchArgument(
             'aria_ip',

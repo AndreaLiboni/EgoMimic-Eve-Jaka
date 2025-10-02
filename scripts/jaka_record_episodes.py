@@ -95,8 +95,6 @@ def capture_one_episode(
 
     data_dict = {
         '/observations/qpos': [],
-        '/observations/qvel': [],
-        '/observations/effort': [],
         '/action': [],
     }
 
@@ -108,8 +106,6 @@ def capture_one_episode(
         action = actions.pop(0)
         ts = timesteps.pop(0)
         data_dict['/observations/qpos'].append(ts.observation['qpos'])
-        data_dict['/observations/qvel'].append(ts.observation['qvel'])
-        data_dict['/observations/effort'].append(ts.observation['effort'])
         data_dict['/action'].append(action)
         
         for cam_name in camera_names:
@@ -130,7 +126,11 @@ def capture_one_episode(
             compressed_len.append([])
             for image in image_list:
                 # 0.02 sec # cv2.imdecode(encoded_image, 1)
-                _, encoded_image = cv2.imencode('.jpg', image, encode_param)
+                try:
+                    _, encoded_image = cv2.imencode('.jpg', image, encode_param)
+                except cv2.error:
+                    print(f'cv2 error, image shape: {image.shape}, dtype: {image.dtype}')
+                    encoded_image = image
                 compressed_list.append(encoded_image)
                 compressed_len[-1].append(len(encoded_image))
             data_dict[f'/observations/images/{cam_name}'] = compressed_list
@@ -227,6 +227,9 @@ def main(args: dict):
         )
         if is_healthy:
             break
+    
+    executor.shutdown()
+    rclpy.shutdown()
 
 
 def get_auto_index(dataset_dir, dataset_name_prefix='', data_suffix='hdf5'):

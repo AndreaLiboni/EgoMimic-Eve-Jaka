@@ -83,6 +83,7 @@ class JAKA:
             raise Exception(f'JAKA_error {ret}')
     
     def move_servo_pos(self, target_pose: Sequence[float]):
+        print(f'move_servo_pos {target_pose}')
         ret = self.robot.servo_p(target_pose, 1, 1)[0]
         if ret != 0:
             raise Exception(f'JAKA_error ({ret})')
@@ -107,7 +108,7 @@ class ImageRecorder(Node):
             setattr(self, f'{cam_name}_nsecs', None)
             if cam_name == 'cam_high':
                 callback_func = self.image_cb_cam_high
-                topic = "/cam_high"
+                topic = "/cam_high/image_raw"
             elif cam_name == 'cam_wrist':
                 callback_func = self.image_cb_cam_wrist
                 topic = "/cam_wrist/camera/color/image_raw"
@@ -197,6 +198,5 @@ class ControllerSubscriber(Node):
 
         if msg.buttons[3] == 1:  # Y button to stop recording
             self.record = False
-            print('Stopped recording')
         # (pos, INCREMENT, STEP_NUM)
         self.robot.move_servo_pos(new_pos)
