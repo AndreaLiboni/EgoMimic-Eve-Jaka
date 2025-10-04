@@ -99,7 +99,7 @@ class ImageRecorder(Node):
         self.is_debug = is_debug
         self.bridge = CvBridge()
 
-        self.camera_names = ['cam_high', 'cam_wrist']
+        self.camera_names = ['cam_high', 'cam_left_wrist']
         
 
         for cam_name in self.camera_names:
@@ -109,9 +109,9 @@ class ImageRecorder(Node):
             if cam_name == 'cam_high':
                 callback_func = self.image_cb_cam_high
                 topic = "/cam_high/image_raw"
-            elif cam_name == 'cam_wrist':
-                callback_func = self.image_cb_cam_wrist
-                topic = "/cam_wrist/camera/color/image_raw"
+            elif cam_name == 'cam_left_wrist':
+                callback_func = self.image_cb_cam_left_wrist
+                topic = "/cam_left_wrist/camera/color/image_raw"
             else:
                 raise NotImplementedError
             
@@ -138,8 +138,8 @@ class ImageRecorder(Node):
         cam_name = 'cam_high'
         return self.image_cb(cam_name, data)
 
-    def image_cb_cam_wrist(self, data):
-        cam_name = 'cam_wrist'
+    def image_cb_cam_left_wrist(self, data):
+        cam_name = 'cam_left_wrist'
         return self.image_cb(cam_name, data)
 
     def get_images(self):

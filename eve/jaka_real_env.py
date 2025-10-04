@@ -26,7 +26,8 @@ class RealEnvJaka:
         ]
         "images": {
             "cam_high": (480x640x3),   # h, w, c, dtype='uint8'
-            "cam_wrist": (480x640x3),  # h, w, c, dtype='uint8'
+            "cam_right_wrist": (480x640x3),  # h, w, c, dtype='uint8'
+            "cam_left_wrist": (480x640x3),  # h, w, c, dtype='uint8'
         }
     """
 

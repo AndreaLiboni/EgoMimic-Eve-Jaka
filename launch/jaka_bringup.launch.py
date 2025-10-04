@@ -28,7 +28,7 @@ def launch_setup(context, *args, **kwargs):
 
     rs_actions = []
     camera_names = [
-        'cam_wrist'
+        'cam_left_wrist'
     ]
     for camera_name in camera_names:
         rs_actions.append(
