@@ -24,9 +24,11 @@ from sensor_msgs.msg import Joy
 
 class JAKA:
 
-    def __init__(self, ip_address: str):
+    def __init__(self, ip_address: str, faker: bool = False):
         self.robot = RC(ip_address)
-        self.robot.login()
+        self.faker = faker
+        if not self.faker:
+            self.robot.login()
 
         self.speed =                JAKA_SPEED
         self.io_id =                JAKA_IO
@@ -56,23 +58,31 @@ class JAKA:
         self.move_joints(self.start_pose_joints, block=block)
     
     def get_joints(self) -> list:
-        ret, pos = self.robot.get_joint_position()
-        if ret == 0:
-            return pos 
-        raise Exception(f'JAKA_error ({ret})')
+        if self.faker:
+            return self.start_pose_joints
+        pos = self.robot.get_joint_position()
+        if len(pos) > 1:
+            return pos [1]
+        raise Exception(f'JAKA_error ({pos[0]})')
     
     def move_joints(self, target_pose: Sequence[float], block: bool = False):
+        if self.faker:
+            return
         ret = self.robot.joint_move(target_pose, 0, block, self.speed)[0]
         if ret != 0:
             raise Exception(f'JAKA_error ({ret})')
     
     def get_gripper(self) -> float:
-        ret, pos = self.robot.get_analog_output(self.io_id, self.gripper_id)
-        if ret == 0:
-            return pos / 100
-        raise Exception(f'JAKA_error ({ret})')
+        if self.faker:
+            return self.start_pose_gripper
+        pos = self.robot.get_analog_output(self.io_id, self.gripper_id)
+        if len(pos) > 1:
+            return pos[1] / 100
+        raise Exception(f'JAKA_error ({pos[0]})')
 
     def move_gripper(self, target_pose: float, incremental: bool = False):
+        if self.faker:
+            return
         if incremental:
             target_pose = self.get_gripper() + target_pose
         target_pose *= 100

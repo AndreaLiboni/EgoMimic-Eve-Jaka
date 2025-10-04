@@ -107,10 +107,10 @@ TASK_CONFIGS = {
     #     'camera_names': ['cam_high', 'cam_left_wrist', 'cam_right_wrist']
     # },
     'jaka_test':{
-        'dataset_dir': DATA_DIR + '/jaka_test',
-        'episode_len': 1000,
-        # 'camera_names': ['cam__left_wrist'],
-        'camera_names': ['cam_high', 'cam_left_wrist']
+        'dataset_dir': DATA_DIR + '/jaka_test_camera',
+        'episode_len': 100,
+        'camera_names': ['cam_left_wrist'],
+        # 'camera_names': ['cam_high', 'cam_left_wrist']
     },
 
     'aloha_mobile_hello_aloha':{
