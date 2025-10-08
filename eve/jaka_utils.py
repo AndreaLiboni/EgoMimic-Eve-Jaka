@@ -18,8 +18,7 @@ from eve.constants import (
 from cv_bridge import CvBridge
 import numpy as np
 from rclpy.node import Node
-from sensor_msgs.msg import Image
-from sensor_msgs.msg import Joy
+from sensor_msgs.msg import Image, Joy
 
 
 class JAKA:
@@ -93,7 +92,6 @@ class JAKA:
             raise Exception(f'JAKA_error {ret}')
     
     def move_servo_pos(self, target_pose: Sequence[float]):
-        print(f'move_servo_pos {target_pose}')
         ret = self.robot.servo_p(target_pose, 1, 1)[0]
         if ret != 0:
             raise Exception(f'JAKA_error ({ret})')
@@ -183,6 +181,7 @@ class ControllerSubscriber(Node):
         self.subscription
         self.robot.servo_mode()
         self.record = True
+        self.last = time.time()
 
     def joy_callback(self, msg: Joy):
         new_pos = [
@@ -209,4 +208,7 @@ class ControllerSubscriber(Node):
         if msg.buttons[3] == 1:  # Y button to stop recording
             self.record = False
         # (pos, INCREMENT, STEP_NUM)
+        new_time = time.time()
+        print(f'dt: {new_time - self.last:.3f}s')
+        self.last = new_time
         self.robot.move_servo_pos(new_pos)

@@ -62,13 +62,14 @@ def capture_one_episode(
             max_timesteps = t
             break
         t0 = time.time()
-        action = env.get_action()
-        t1 = time.time()
         ts = env.step()
+        t1 = time.time()
+        action = ts.observation['qpos']
         t2 = time.time()
         timesteps.append(ts)
         actions.append(action)
         actual_dt_history.append([t0, t1, t2])
+        # print(max(0, DT - (time.time() - t0)))
         time.sleep(max(0, DT - (time.time() - t0)))
     
     print(f'Avg fps: {max_timesteps / (time.time() - time0)}')
@@ -203,12 +204,12 @@ def main(args: dict):
     robot = JAKA(args['ip'])
     robot.frame_id = 0
     robot.tool_id = 9
-    robot.setup_robot()
+    # robot.setup_robot()
 
     rclpy.init()
     env = RealEnvJaka(robot)
 
-    executor = rclpy.executors.MultiThreadedExecutor()
+    executor = rclpy.executors.MultiThreadedExecutor(num_threads=4)
     controller = ControllerSubscriber(robot)
     executor.add_node(controller)
     executor_thread = threading.Thread(target=executor.spin, daemon=True)

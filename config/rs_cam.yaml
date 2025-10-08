@@ -1,4 +1,4 @@
-$(var cam_right_wrist_name):
+cam_right_wrist:
   camera:
     ros__parameters:
       # serial_no: "235123071335"
@@ -14,7 +14,7 @@ $(var cam_right_wrist_name):
       enable_infra1: false
       enable_infra2: false
 
-$(var cam_left_wrist_name):
+cam_left_wrist:
   camera:
     ros__parameters:
       # serial_no: "235123072997"
