@@ -76,7 +76,7 @@ def launch_setup(context, *args, **kwargs):
         name='usb_cam_node_exe',
         namespace='cam_high',
         parameters=[{
-            'video_device': '/dev/video6',
+            'video_device': '/dev/video0',
             'image_width': 640,
             'image_height': 480,
             'pixel_format': 'yuyv2rgb',

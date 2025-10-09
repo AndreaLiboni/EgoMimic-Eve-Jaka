@@ -37,7 +37,7 @@ try:
 except ImportError:
     pass
 
-FPS = 50
+FPS = 30
 JOINT_NAMES = ['waist', 'shoulder', 'elbow', 'forearm_roll', 'wrist_angle', 'wrist_rotate']
 START_ARM_POSE = [
     0.0, -0.96, 1.16, 0.0, -0.3, 0.0, 0.02239, -0.02239,
@@ -109,8 +109,8 @@ TASK_CONFIGS = {
     'jaka_test':{
         'dataset_dir': DATA_DIR + '/jaka_test_camera',
         'episode_len': 100,
-        'camera_names': ['cam_left_wrist'],
-        # 'camera_names': ['cam_high', 'cam_left_wrist']
+        # 'camera_names': ['cam_left_wrist'],
+        'camera_names': ['cam_high', 'cam_left_wrist']
     },
 
     'aloha_mobile_hello_aloha':{

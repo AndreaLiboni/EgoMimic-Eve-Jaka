@@ -40,8 +40,8 @@ def capture_one_episode(
         exit()
 
     # Data collection
-    ts = env.reset()
-    timesteps = [ts]
+    # ts = env.reset()
+    timesteps = []
     actions = []
     actual_dt_history = []
     time0 = time.time()
@@ -114,43 +114,7 @@ def capture_one_episode(
                 ts.observation['images'][cam_name]
             )
 
-    COMPRESS = False
-
-    if COMPRESS:
-        # JPEG compression
-        t0 = time.time()
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 50]  # tried as low as 20, seems fine
-        compressed_len = []
-        for cam_name in camera_names:
-            image_list = data_dict[f'/observations/images/{cam_name}']
-            compressed_list = []
-            compressed_len.append([])
-            for image in image_list:
-                # 0.02 sec # cv2.imdecode(encoded_image, 1)
-                try:
-                    _, encoded_image = cv2.imencode('.jpg', image, encode_param)
-                except cv2.error:
-                    print(f'cv2 error, image shape: {image.shape}, dtype: {image.dtype}')
-                    encoded_image = image
-                compressed_list.append(encoded_image)
-                compressed_len[-1].append(len(encoded_image))
-            data_dict[f'/observations/images/{cam_name}'] = compressed_list
-        print(f'compression: {time.time() - t0:.2f}s')
-
-        # Pad so it has same length
-        t0 = time.time()
-        compressed_len = np.array(compressed_len)
-        padded_size = compressed_len.max()
-        for cam_name in camera_names:
-            compressed_image_list = data_dict[f'/observations/images/{cam_name}']
-            padded_compressed_image_list = []
-            for compressed_image in compressed_image_list:
-                padded_compressed_image = np.zeros(padded_size, dtype='uint8')
-                image_len = len(compressed_image)
-                padded_compressed_image[:image_len] = compressed_image
-                padded_compressed_image_list.append(padded_compressed_image)
-            data_dict[f'/observations/images/{cam_name}'] = padded_compressed_image_list
-        print(f'padding: {time.time() - t0:.2f}s')
+    COMPRESS = True
 
     # Save to HDF5
     t0 = time.time()
@@ -161,23 +125,25 @@ def capture_one_episode(
         image = obs.create_group('images')
         for cam_name in camera_names:
             if COMPRESS:
-                image.create_dataset(cam_name, (max_timesteps, padded_size), dtype='uint8',
-                                         chunks=(1, padded_size), )
+                image.create_dataset(cam_name, (max_timesteps, 480, 640, 3), dtype='uint8',
+                                          chunks=(1, 480, 640, 3), compression="gzip",  compression_opts=4)
             else:
                 image.create_dataset(cam_name, (max_timesteps, 480, 640, 3), dtype='uint8',
-                                         chunks=(1, 480, 640, 3), )
-        obs.create_dataset('qpos', (max_timesteps, 7))
+                                         chunks=(1, 480, 640, 3))
+        
+        if COMPRESS:
+            obs.create_dataset('qpos', (max_timesteps, 7), compression="gzip",  compression_opts=4)
+            root.create_dataset('action', (max_timesteps, 7), compression="gzip",  compression_opts=4)
+        else:
+            obs.create_dataset('qpos', (max_timesteps, 7))
+            root.create_dataset('action', (max_timesteps, 7))
+        
         # obs.create_dataset('qvel', (max_timesteps, 7))
         # obs.create_dataset('effort', (max_timesteps, 7))
-        root.create_dataset('action', (max_timesteps, 7))
 
         for name, array in data_dict.items():
             print(name, np.array(array).shape)
             root[name][...] = array
-
-        if COMPRESS:
-            root.create_dataset('compress_len', (len(camera_names), max_timesteps))
-            root['/compress_len'][...] = compressed_len
 
     print(f'Saving: {time.time() - t0:.1f} secs')
 
@@ -201,10 +167,11 @@ def main(args: dict):
     dataset_name = f'episode_{episode_idx}'
     print(dataset_name + '\n')
 
-    robot = JAKA(args['ip'])
+    robot = JAKA(args['ip'], faker=True)
     robot.frame_id = 0
     robot.tool_id = 9
-    # robot.setup_robot()
+    robot.setup_robot()
+    robot.servo_mode()
 
     rclpy.init()
     env = RealEnvJaka(robot)
