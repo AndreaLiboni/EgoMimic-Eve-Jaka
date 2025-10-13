@@ -53,7 +53,7 @@ class JAKA:
         self.robot.servo_move_enable(True)
     
     def move_to_start(self, block: bool = True):
-        self.move_gripper(self.start_pose_gripper)
+        #self.move_gripper(self.start_pose_gripper)
         self.move_joints(self.start_pose_joints, block=block)
     
     def get_joints(self) -> list:

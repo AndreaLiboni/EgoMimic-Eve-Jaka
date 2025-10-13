@@ -167,10 +167,11 @@ def main(args: dict):
     dataset_name = f'episode_{episode_idx}'
     print(dataset_name + '\n')
 
-    robot = JAKA(args['ip'], faker=True)
+    robot = JAKA(args['ip'])
     robot.frame_id = 0
     robot.tool_id = 9
     robot.setup_robot()
+    robot.move_to_start(block=True)
     robot.servo_mode()
 
     rclpy.init()

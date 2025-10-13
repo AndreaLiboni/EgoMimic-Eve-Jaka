@@ -18,6 +18,7 @@ def main(args) -> None:
 
     # move the robot to the starting position
     robot.move_to_start(block=True)
+    robot.servo_mode()
 
     # Teleoperation loop
     rclpy.init()
