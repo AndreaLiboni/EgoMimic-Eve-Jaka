@@ -28,6 +28,7 @@ def capture_one_episode(
     overwrite,
     env: RealEnvJaka,
     controller: ControllerSubscriber,
+    save_tcp_position=False,
 ):
     print(f'Dataset name: {dataset_name}')
 
@@ -62,7 +63,11 @@ def capture_one_episode(
             max_timesteps = t
             break
         t0 = time.time()
-        ts = env.step()
+        ts = env.step(
+            action=None,
+            get_obs=True,
+            get_tcp_position=save_tcp_position
+        )
         t1 = time.time()
         action = ts.observation['qpos']
         t2 = time.time()
@@ -155,6 +160,7 @@ def main(args: dict):
     dataset_dir = task_config['dataset_dir']
     max_timesteps = task_config['episode_len']
     camera_names = task_config['camera_names']
+    save_tcp_position = task_config.get('save_tcp_position', False)
 
     # torque_base = args.get('enable_base_torque', False)
 
@@ -193,6 +199,7 @@ def main(args: dict):
             overwrite,
             env,
             controller,
+            save_tcp_position
         )
         if is_healthy:
             break

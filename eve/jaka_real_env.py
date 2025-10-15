@@ -48,6 +48,9 @@ class RealEnvJaka:
         arm_qpos = self.robot.get_joints()
         gripper_qpos = self.robot.get_gripper()
         return np.concatenate([np.array(arm_qpos), np.array([gripper_qpos])])
+    
+    def get_position(self):
+        return self.robot.get_tcp_position()
 
     def get_qvel(self):
         # return [0] * 7
@@ -66,12 +69,14 @@ class RealEnvJaka:
     def set_gripper_pose(self, pos: float):
         self.robot.move_gripper(pos)
 
-    def get_observation(self) -> dict:
+    def get_observation(self, get_tcp_position=False) -> dict:
         obs = collections.OrderedDict()
         obs['qpos'] = self.get_qpos()
         # obs['qvel'] = self.get_qvel()
         # obs['effort'] = self.get_effort()
         obs['images'] = self.get_images()
+        if get_tcp_position:
+            obs['q_tcp_pos'] = self.get_position()
         return obs
 
     def get_reward(self) -> float:
@@ -86,13 +91,13 @@ class RealEnvJaka:
             observation=self.get_observation(),
         )
 
-    def step(self, action=None, get_obs=True):
+    def step(self, action=None, get_obs=True, get_tcp_position=False) -> TimeStep:
         if action is not None:
             self.robot.move_joints(action[:6], block=False)
             self.robot.move_gripper(action[6])
         obs = None
         if get_obs:
-            obs = self.get_observation()
+            obs = self.get_observation(get_tcp_position)
         return TimeStep(
             step_type=StepType.MID,
             reward=self.get_reward(),

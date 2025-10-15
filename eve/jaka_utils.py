@@ -64,6 +64,14 @@ class JAKA:
             return pos [1]
         raise Exception(f'JAKA_error ({pos[0]})')
     
+    def get_tcp_position(self) -> list:
+        if self.faker:
+            return [0, 0, 0, 0, 0, 0]
+        pos = self.robot.get_tcp_position()
+        if len(pos) > 1:
+            return pos [1]
+        raise Exception(f'JAKA_error ({pos[0]})')
+    
     def move_joints(self, target_pose: Sequence[float], block: bool = False):
         if self.faker:
             return
