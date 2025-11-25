@@ -175,7 +175,7 @@ def main(args=None):
         # streaming_manager.stop_streaming()
     
     streaming_config = aria.StreamingConfig()
-    streaming_config.profile_name = "profile15"
+    streaming_config.profile_name = "profile12"
     print(streaming_config.profile_name)
     if device_ip is not None:
         streaming_config.streaming_interface = aria.StreamingInterface.WifiStation

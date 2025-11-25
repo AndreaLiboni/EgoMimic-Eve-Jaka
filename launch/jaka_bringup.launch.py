@@ -80,6 +80,7 @@ def launch_setup(context, *args, **kwargs):
             'image_width': 640,
             'image_height': 480,
             'pixel_format': 'yuyv2rgb',
+            'focus_auto': False,
         }],
         condition=IfCondition(LaunchConfiguration('usb_cam'))
     )

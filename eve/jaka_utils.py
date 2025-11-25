@@ -38,6 +38,8 @@ class JAKA:
         self.tool_id =              None
 
     def setup_robot(self):
+        if self.faker:
+            return
         self.robot.power_on()
         self.robot.enable_robot()
         self.robot.servo_move_use_none_filter()
@@ -49,6 +51,8 @@ class JAKA:
             self.robot.set_tool_id(self.tool_id)
     
     def servo_mode(self):
+        if self.faker:
+            return
         self.robot.servo_move_use_joint_LPF(0.5) 
         self.robot.servo_move_enable(True)
     
@@ -60,14 +64,6 @@ class JAKA:
         if self.faker:
             return self.start_pose_joints
         pos = self.robot.get_joint_position()
-        if len(pos) > 1:
-            return pos [1]
-        raise Exception(f'JAKA_error ({pos[0]})')
-    
-    def get_tcp_position(self) -> list:
-        if self.faker:
-            return [0, 0, 0, 0, 0, 0]
-        pos = self.robot.get_tcp_position()
         if len(pos) > 1:
             return pos [1]
         raise Exception(f'JAKA_error ({pos[0]})')
@@ -124,7 +120,7 @@ class ImageRecorder(Node):
             setattr(self, f'{cam_name}_nsecs', None)
             if cam_name == 'cam_high':
                 callback_func = self.image_cb_cam_high
-                topic = "/cam_high/image_raw"
+                topic = "/cam_high"
             elif cam_name == 'cam_left_wrist':
                 callback_func = self.image_cb_cam_left_wrist
                 topic = "/cam_left_wrist/camera/color/image_raw"
@@ -195,16 +191,16 @@ class ControllerSubscriber(Node):
             msg.axes[6] * JAKA_MAX_MOVEMENT_MM,
             msg.axes[0] * JAKA_MAX_MOVEMENT_MM *-1,
             msg.axes[1] * JAKA_MAX_MOVEMENT_MM,
-            msg.axes[3] * JAKA_MAX_ROTATION_RAD,
+            msg.axes[4] * JAKA_MAX_ROTATION_RAD,
             0,
-            0
+            msg.axes[3] * JAKA_MAX_ROTATION_RAD
         ]
         # new_pos = [
-        #     msg.axes[1] * JAKA_MAX_MOVEMENT_MM,
         #     msg.axes[0] * JAKA_MAX_MOVEMENT_MM,
-        #     msg.axes[3] * JAKA_MAX_MOVEMENT_MM,
+        #     msg.axes[1] * JAKA_MAX_MOVEMENT_MM*-1,
+        #     msg.axes[5] * JAKA_MAX_MOVEMENT_MM,
+        #     msg.axes[2] * JAKA_MAX_ROTATION_RAD ,
         #     0,
-        #     msg.axes[5] * JAKA_MAX_ROTATION_RAD ,
         #     0
         # ]
         if msg.buttons[0] == 1:  # A button to close gripper

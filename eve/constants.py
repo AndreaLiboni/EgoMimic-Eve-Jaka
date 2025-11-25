@@ -8,7 +8,7 @@ JAKA_SPEED = 0.5 # mm/s
 JAKA_IO = 0  #0: control cabinet panel IO | 1: tool IO
 JAKA_GRIPPER_IO = 0   #extension IO
 JAKA_START_ARM_POSE = [
-    1.57, 1.57, 1.57, 3.14, -4.71, 3.14, 0.0,
+    1.57, 1.57, 1.57, 3.14, -4.71, 3.14, 0
 ]
 # gripper
 JAKA_GRIPPER_JOINT_OPEN = 0
@@ -115,7 +115,8 @@ TASK_CONFIGS = {
     'pick_bustina':{
         'dataset_dir': DATA_DIR + '/pick_bustina',
         'episode_len': 900,
-        'camera_names': ['cam_high', 'cam_left_wrist']
+        'camera_names': ['cam_high', 'cam_left_wrist'],
+        'tcp_id': 12
     },
 
     'aloha_mobile_hello_aloha':{
@@ -178,9 +179,9 @@ TASK_CONFIGS = {
     },
     'CALIBRATE':{
         'dataset_dir': DATA_DIR + '/CALIBRATE',
-        'episode_len': 2000,
+        'episode_len': 600,
         'camera_names': ['cam_high'],
-        'save_tcp_position': True,
+        'tcp_id': 11
     },
     'CALIBRATE_LEFT':{
         'dataset_dir': DATA_DIR + '/CALIBRATE_LEFT',
