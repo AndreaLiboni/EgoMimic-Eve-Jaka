@@ -14,10 +14,8 @@ from eve.constants import (
     FPS,
     TASK_CONFIGS,
 )
-from eve.jaka_utils import (
-    JAKA,
-    ControllerSubscriber
-)
+from eve.jaka_utils import ControllerSubscriber
+from eve.jaka import JAKA
 
 
 def capture_one_episode(

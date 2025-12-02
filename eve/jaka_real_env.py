@@ -1,13 +1,9 @@
 import threading
-import rclpy
 import collections
 from dm_env import TimeStep, StepType
 import numpy as np
 
-from eve.jaka_utils import (
-    JAKA,
-    ImageRecorder,
-)
+from eve.jaka import JAKA
 
 
 class RealEnvJaka:
@@ -34,15 +30,24 @@ class RealEnvJaka:
     def __init__(
         self,
         robot: JAKA,
+        use_ros: bool = True,
     ):
         """Initialize the Real Robot Environment"""
         self.robot = robot
-        self.image_recorder = ImageRecorder()
 
-        executor = rclpy.executors.MultiThreadedExecutor()
-        executor.add_node(self.image_recorder)
-        executor_thread = threading.Thread(target=executor.spin, daemon=True)
-        executor_thread.start()
+        if use_ros:
+            from eve.jaka_utils import ImageRecorder
+            import rclpy
+
+            self.image_recorder = ImageRecorder()
+            executor = rclpy.executors.MultiThreadedExecutor()
+            executor.add_node(self.image_recorder)
+            executor_thread = threading.Thread(target=executor.spin, daemon=True)
+            executor_thread.start()
+        else:
+            from eve.rosless_image_recorder import ImageRecorder
+            self.image_recorder = ImageRecorder()
+            
 
     def get_qpos(self) -> np.ndarray:
         arm_qpos = self.robot.get_joints()
@@ -78,7 +83,7 @@ class RealEnvJaka:
         return 0.0
 
     def reset(self) -> TimeStep:
-        self.robot.move_to_start(block=False)
+        self.robot.move_to_start(block=True)
         return TimeStep(
             step_type=StepType.FIRST,
             reward=self.get_reward(),
@@ -88,7 +93,7 @@ class RealEnvJaka:
 
     def step(self, action=None, get_obs=True) -> TimeStep:
         if action is not None:
-            self.robot.move_joints(action[:6], block=False)
+            self.robot.move_joints(action[:6], block=True)
             self.robot.move_gripper(action[6])
         obs = None
         if get_obs:

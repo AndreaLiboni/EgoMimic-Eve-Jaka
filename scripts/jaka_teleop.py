@@ -2,10 +2,8 @@
 import rclpy
 import argparse
 
-from eve.jaka_utils import (
-    JAKA,
-    ControllerSubscriber
-)
+from eve.jaka_utils import ControllerSubscriber
+from eve.jaka import JAKA
 
 
 def main(args) -> None:

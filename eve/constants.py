@@ -8,7 +8,7 @@ JAKA_SPEED = 0.5 # mm/s
 JAKA_IO = 0  #0: control cabinet panel IO | 1: tool IO
 JAKA_GRIPPER_IO = 0   #extension IO
 JAKA_START_ARM_POSE = [
-    1.57, 1.57, 1.57, 3.14, -4.71, 3.14, 0
+    1.57, 1.57, 1.57, 3.14, 1.57, 3.14, 0
 ]
 # gripper
 JAKA_GRIPPER_JOINT_OPEN = 0
