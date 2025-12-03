@@ -84,6 +84,7 @@ class RealEnvJaka:
 
     def reset(self) -> TimeStep:
         self.robot.move_to_start(block=True)
+        self.robot.servo_mode()
         return TimeStep(
             step_type=StepType.FIRST,
             reward=self.get_reward(),
@@ -93,7 +94,7 @@ class RealEnvJaka:
 
     def step(self, action=None, get_obs=True) -> TimeStep:
         if action is not None:
-            self.robot.move_joints(action[:6], block=True)
+            self.robot.move_servo_joint(action[:6])
             self.robot.move_gripper(action[6])
         obs = None
         if get_obs:

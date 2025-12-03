@@ -90,3 +90,8 @@ class JAKA:
         ret = self.robot.servo_p(target_pose, 1, 1)[0]
         if ret != 0:
             raise Exception(f'JAKA_error ({ret})')
+    
+    def move_servo_joint(self, target_pose: Sequence[float]):
+        ret = self.robot.servo_j(target_pose, 0, 4)[0]
+        if ret != 0:
+            raise Exception(f'JAKA_error ({ret})')

@@ -4,15 +4,17 @@
 JAKA_MAX_MOVEMENT_MM = 1.5
 JAKA_MAX_ROTATION_RAD = 0.006
 JAKA_MAX_GRIPPER_MOVEMENT = 0.04
-JAKA_SPEED = 0.5 # mm/s
+JAKA_SPEED = 0.15 # percentage of max speed
 JAKA_IO = 0  #0: control cabinet panel IO | 1: tool IO
 JAKA_GRIPPER_IO = 0   #extension IO
 JAKA_START_ARM_POSE = [
-    1.57, 1.57, 1.57, 3.14, 1.57, 3.14, 0
+    # 1.57, 1.57, 1.57, 3.14, 1.57, 4.71, 0
+    1.75, 1.20, 2.29, 2.81, 1.77, 4.75, 0
 ]
 # gripper
 JAKA_GRIPPER_JOINT_OPEN = 0
 JAKA_GRIPPER_JOINT_CLOSE = 1
+JAKA_DT = 0.16
 
 ### Task parameters
 
