@@ -183,7 +183,7 @@ TASK_CONFIGS = {
         'dataset_dir': DATA_DIR + '/CALIBRATE',
         'episode_len': 600,
         'camera_names': ['cam_high'],
-        'tcp_id': 11
+        'tcp_id': 12
     },
     'CALIBRATE_LEFT':{
         'dataset_dir': DATA_DIR + '/CALIBRATE_LEFT',

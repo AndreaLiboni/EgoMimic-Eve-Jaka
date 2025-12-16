@@ -175,7 +175,7 @@ def main(args: dict):
         print(f'Setting TCP ID to {tcp_id}')
         robot.tool_id = tcp_id
     robot.setup_robot()
-    robot.move_to_start(block=True)
+    # robot.move_to_start(block=True)
     robot.servo_mode()
 
     rclpy.init()
