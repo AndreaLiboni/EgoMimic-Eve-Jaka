@@ -9,18 +9,19 @@ from eve.jaka import JAKA
 def main(args) -> None:
     robot = JAKA(args.robot_ip)
     robot.frame_id = 0
-    robot.tool_id = 9
+    robot.tool_id = 12
     robot.setup_robot()
     robot.move_gripper(0.0)  # open the gripper
     print("Connected to robot and enabled it.")
 
     # move the robot to the starting position
-    robot.move_to_start(block=True)
+    # robot.move_to_start(block=True)
     robot.servo_mode()
 
     # Teleoperation loop
+    print("Starting teleoperation...")
     rclpy.init()
-    controller_subscriber = ControllerSubscriber(robot)
+    controller_subscriber = ControllerSubscriber(robot, tcp_mode=True)
     rclpy.spin(controller_subscriber)
 
 

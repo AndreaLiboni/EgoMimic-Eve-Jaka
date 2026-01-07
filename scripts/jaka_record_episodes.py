@@ -182,7 +182,7 @@ def main(args: dict):
     env = RealEnvJaka(robot)
 
     executor = rclpy.executors.MultiThreadedExecutor(num_threads=4)
-    controller = ControllerSubscriber(robot)
+    controller = ControllerSubscriber(robot, tcp_mode=True)
     executor.add_node(controller)
     executor_thread = threading.Thread(target=executor.spin, daemon=True)
     executor_thread.start()

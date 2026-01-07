@@ -2,7 +2,7 @@ cam_right_wrist:
   camera:
     ros__parameters:
       # serial_no: "235123071335"
-      serial_no: "230422271850"
+      serial_no: "332522071763"
       rgb_camera:
         enable_auto_exposure: false
       depth_module:

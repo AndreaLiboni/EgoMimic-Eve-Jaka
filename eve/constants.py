@@ -2,6 +2,7 @@
 
 # JAKA params
 JAKA_MAX_MOVEMENT_MM = 1.5
+JAKA_MAX_JOINT_MOVEMENT_RAD = 0.03
 JAKA_MAX_ROTATION_RAD = 0.006
 JAKA_MAX_GRIPPER_MOVEMENT = 0.04
 JAKA_SPEED = 0.15 # percentage of max speed
@@ -116,8 +117,8 @@ TASK_CONFIGS = {
     },
     'pick_bustina':{
         'dataset_dir': DATA_DIR + '/pick_bustina',
-        'episode_len': 900,
-        'camera_names': ['cam_high', 'cam_left_wrist'],
+        'episode_len': 500,
+        'camera_names': ['cam_high', 'cam_right_wrist'],
         'tcp_id': 12
     },
 

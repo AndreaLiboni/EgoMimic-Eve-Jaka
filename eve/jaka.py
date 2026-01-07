@@ -1,8 +1,9 @@
 import sys
-sys.path.append('/home/andrea/Sviluppo/Lavoro/jaka_sdk_2.2.7')
+sys.path.append('/home/andrea/jaka_sdk_2.2.7')
 from jkrc import RC
 
 from typing import Sequence
+import math
 
 from eve.constants import (
     JAKA_GRIPPER_IO,
@@ -87,11 +88,39 @@ class JAKA:
             raise Exception(f'JAKA_error {ret}')
     
     def move_servo_pos(self, target_pose: Sequence[float]):
+        if self.faker:
+            return
         ret = self.robot.servo_p(target_pose, 1, 1)[0]
         if ret != 0:
             raise Exception(f'JAKA_error ({ret})')
     
     def move_servo_joint(self, target_pose: Sequence[float]):
+        if self.faker:
+            return
+        if not self.safety_joints(target_pose):
+            print("JAKA: Joint limits exceeded, command not sent.")
+            return
         ret = self.robot.servo_j(target_pose, 0, 4)[0]
         if ret != 0:
             raise Exception(f'JAKA_error ({ret})')
+
+    def safety_joints(self, target_pose: Sequence[float]):
+        if self.faker:
+            return True
+
+        if target_pose[0] > math.radians(335):
+            # target_pose[0] = math.radians(335)
+            return False
+        elif target_pose[0] < math.radians(325):
+            # target_pose[0] = math.radians(325)
+            return False
+
+        if target_pose[1] > math.radians(232):
+            # target_pose[1] = math.radians(232)
+            return False
+
+        if target_pose[2] > math.radians(-20):
+            # target_pose[2] = math.radians(-20)
+            return False
+        
+        return True
