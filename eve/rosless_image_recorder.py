@@ -156,11 +156,11 @@ class ImageRecorder:
         
         # Cam 1: Realsense (Wrist)
         try:
-            self.cam_left_wrist = RealsenseCamera()
+            self.cam_right_wrist = RealsenseCamera()
             print("Realsense initialized.")
         except Exception as e:
             print(f"Error initializing Realsense: {e}")
-            self.cam_left_wrist = None
+            self.cam_right_wrist = None
 
         # Cam 2: Aria Glasses (High)
         try:
@@ -176,7 +176,7 @@ class ImageRecorder:
         
         self.latest_images = {
             'cam_high': None,
-            'cam_left_wrist': None
+            'cam_right_wrist': None
         }
 
         # Start a thread to continuously grab frames 
@@ -189,11 +189,11 @@ class ImageRecorder:
     def _update(self):
         while self.running:
             # Update Wrist
-            if self.cam_left_wrist:
-                img_wrist = self.cam_left_wrist.read()
+            if self.cam_right_wrist:
+                img_wrist = self.cam_right_wrist.read()
                 if img_wrist is not None:
                     with self.lock:
-                        self.latest_images['cam_left_wrist'] = img_wrist
+                        self.latest_images['cam_right_wrist'] = img_wrist
             
             # Update High (Aria)
             if self.cam_high:
@@ -212,8 +212,8 @@ class ImageRecorder:
     def stop(self):
         self.running = False
         self.thread.join()
-        if self.cam_left_wrist:
-            self.cam_left_wrist.stop()
+        if self.cam_right_wrist:
+            self.cam_right_wrist.stop()
         if self.cam_high:
             self.cam_high.stop()
 

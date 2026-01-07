@@ -83,7 +83,7 @@ class RealEnvJaka:
         return 0.0
 
     def reset(self) -> TimeStep:
-        self.robot.move_to_start(block=True)
+        #self.robot.move_to_start(block=True)
         self.robot.servo_mode()
         return TimeStep(
             step_type=StepType.FIRST,
